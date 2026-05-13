@@ -726,7 +726,16 @@ function setTab(name){
   else if(name==="projects") renderProjects();
   else if(name==="more") renderMore();
 }
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>setTab(b.dataset.tab)));
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+  // тап по «Задачи» в нижней панели всегда возвращает к сводной (как iOS Reminders)
+  if(b.dataset.tab==="tasks"){
+    state.filter = {kind:"all", projectId:null};
+    state.search = "";
+    const si = document.getElementById("search-input");
+    if(si) si.value = "";
+  }
+  setTab(b.dataset.tab);
+}));
 
 /* ============================================================
    Tasks view
@@ -872,9 +881,54 @@ function bindTaskRows(){
   document.querySelectorAll("[data-open]").forEach(el=>{
     el.onclick = ()=> openTaskEditor(el.dataset.open);
   });
+  // Долгое нажатие на задачу → меню действий
+  document.querySelectorAll(".task[data-id]").forEach(el=>{
+    const tid = el.dataset.id;
+    let timer=null, moved=false, fired=false;
+    const start = ()=>{
+      moved=false; fired=false;
+      timer = setTimeout(()=>{
+        if(moved) return;
+        fired=true;
+        if(navigator.vibrate) try{navigator.vibrate(12);}catch(e){}
+        showTaskActions(tid);
+      }, 500);
+    };
+    const cancel = ()=>{ if(timer){clearTimeout(timer); timer=null;} };
+    el.addEventListener("touchstart", start, {passive:true});
+    el.addEventListener("touchmove", ()=>{ moved=true; cancel(); }, {passive:true});
+    el.addEventListener("touchend", cancel);
+    el.addEventListener("touchcancel", cancel);
+    // На десктопе — правый клик
+    el.addEventListener("contextmenu", e=>{ e.preventDefault(); showTaskActions(tid); });
+    // Если сработал long-press — глушим последующий клик
+    el.addEventListener("click", e=>{
+      if(fired){ e.stopPropagation(); e.preventDefault(); fired=false; }
+    }, true);
+  });
   document.querySelectorAll("[data-filter]").forEach(el=>{
     el.onclick = ()=> setFilter(el.dataset.filter);
   });
+}
+function showTaskActions(tid){
+  const t = state.tasks.find(x=>x.id===tid);
+  if(!t) return;
+  actionSheet([
+    {label:"Открыть", onClick:()=> openTaskEditor(tid)},
+    {label: t.done ? "Снять отметку" : "Отметить выполненной", onClick:()=> toggleTask(tid)},
+    {label:"Удалить", danger:true, bold:true, onClick: async ()=>{
+      t.deletedAt = nowISO();
+      t.updatedAt = nowISO();
+      await dbPut("tasks", t);
+      for(const s of subtasksOf(tid)){
+        s.deletedAt = nowISO();
+        await dbPut("tasks", s);
+      }
+      renderTasks();
+      if(state.tab==="calendar") renderCalendar();
+      toast("Перемещено в корзину");
+    }},
+  ]);
 }
 
 async function toggleTask(id){
