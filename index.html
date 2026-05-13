@@ -1,1 +1,891 @@
-# taskflow
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>TaskFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#EAEBF5;--surface:#FFFFFF;--s2:#F2F1FA;--s3:#EDECF8;
+  --p:#5B4CF5;--pl:#EDE9FF;--pm:#8B7EF8;
+  --t:#15141A;--t2:#6B6882;--t3:#A8A6BC;
+  --bd:rgba(91,76,245,0.09);
+  --err:#F04E6A;--errl:#FFF0F3;
+  --ok:#2DB87A;--okl:#E8FBF3;
+  --warn:#F5A623;--warnl:#FFF8ED;
+  --sh0:0 2px 8px rgba(91,76,245,0.07);
+  --sh:0 6px 20px rgba(91,76,245,0.1),0 2px 6px rgba(0,0,0,0.05);
+  --r:20px;--rs:12px;--rl:28px;
+  --nh:80px;--sb:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);overscroll-behavior:none}
+body{display:flex;justify-content:center;align-items:center;min-height:100vh}
+#app{width:100%;max-width:430px;height:100vh;height:100dvh;background:var(--bg);position:relative;overflow:hidden}
+::-webkit-scrollbar{width:0}
+
+/* VIEWS */
+.view{position:absolute;top:0;left:0;right:0;bottom:var(--nh);overflow-y:auto;overflow-x:hidden;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .26s ease,transform .26s ease;-webkit-overflow-scrolling:touch;padding-bottom:20px}
+.view.active{opacity:1;transform:none;pointer-events:all}
+
+/* NAV */
+#bnav{position:absolute;bottom:0;left:0;right:0;height:calc(var(--nh) + var(--sb));display:flex;align-items:center;justify-content:center;padding:0 16px;padding-bottom:var(--sb);z-index:100}
+.npill{background:#17151F;border-radius:32px;display:flex;align-items:center;justify-content:space-around;width:100%;max-width:370px;height:64px;padding:0 10px;box-shadow:0 8px 32px rgba(23,21,31,0.28)}
+.nb{display:flex;flex-direction:column;align-items:center;justify-content:center;width:46px;height:46px;border-radius:16px;cursor:pointer;border:none;background:transparent;color:#5C596E;transition:all .2s}
+.nb.active{color:#fff;background:rgba(255,255,255,0.12)}
+.nb svg{width:22px;height:22px}
+.nadd-w{display:flex;justify-content:center;flex:0 0 64px}
+.nadd{width:52px;height:52px;background:var(--p);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 18px rgba(91,76,245,0.45);transition:transform .18s}
+.nadd:active{transform:scale(.91)}
+.nadd svg{width:22px;height:22px;color:#fff;stroke-width:2.5}
+
+/* HOME */
+.h-hdr{padding:52px 22px 18px;display:flex;align-items:center;justify-content:space-between}
+.h-user{display:flex;align-items:center;gap:12px}
+.av{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--p),#A599FF);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 14px rgba(91,76,245,0.28);flex-shrink:0}
+.h-u-info{display:flex;flex-direction:column;gap:1px}
+.h-u-sub{font-size:12px;color:var(--t2);font-weight:400}
+.h-u-name{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--t)}
+.bell-btn{width:44px;height:44px;background:var(--surface);border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;box-shadow:var(--sh0)}
+.bell-btn svg{width:20px;height:20px;color:var(--t)}
+.bdot{position:absolute;top:10px;right:10px;width:7px;height:7px;background:var(--warn);border-radius:50%;border:1.5px solid var(--bg);display:none}
+.bdot.on{display:block}
+
+/* SECTION */
+.sh{display:flex;align-items:center;justify-content:space-between;padding:0 22px;margin-bottom:14px}
+.sl{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--t)}
+.ddrop{display:flex;align-items:center;gap:5px;padding:6px 12px;background:var(--surface);border-radius:20px;border:none;font-size:12px;font-weight:500;color:var(--t2);font-family:'DM Sans',sans-serif;cursor:pointer;box-shadow:var(--sh0)}
+.ddrop svg{width:11px;height:11px}
+.see-all{font-size:13px;color:var(--p);background:none;border:none;font-family:inherit;font-weight:500;cursor:pointer}
+
+/* OVERVIEW GRID */
+.ov-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 22px;margin-bottom:26px}
+.ov-card{background:var(--surface);border-radius:var(--r);padding:18px 16px 14px;box-shadow:var(--sh0);cursor:pointer;transition:transform .14s;position:relative;overflow:hidden}
+.ov-card:active{transform:scale(.97)}
+.ov-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.ov-n{font-family:'Syne',sans-serif;font-size:34px;font-weight:800;color:var(--t);line-height:1}
+.ov-w{width:54px;height:28px}
+.ov-bot{display:flex;align-items:center;justify-content:space-between}
+.ov-lbl{font-size:13px;font-weight:500;color:var(--t2)}
+.ov-arr{width:20px;height:20px;background:var(--bg);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.ov-arr svg{width:10px;height:10px;color:var(--t3)}
+.ov1 .ov-w path{stroke:var(--p)}.ov2 .ov-w path{stroke:var(--warn)}.ov3 .ov-w path{stroke:var(--ok)}.ov4 .ov-w path{stroke:var(--err)}
+
+/* PROJ TABS + CARDS */
+.ptabs{display:flex;gap:8px;padding:0 22px;margin-bottom:14px}
+.ptab{padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all .15s}
+.ptab.on{background:var(--t);color:#fff}
+.ptab:not(.on){background:var(--surface);color:var(--t2);box-shadow:var(--sh0)}
+.pcards{display:flex;flex-direction:column;gap:10px;padding:0 22px}
+.pcard{background:var(--surface);border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh0);cursor:pointer;transition:transform .14s}
+.pcard:active{transform:scale(.98)}
+.pc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.pc-date{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t3)}
+.pc-date svg{width:12px;height:12px}
+.pc-menu{width:28px;height:28px;border-radius:8px;border:none;background:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3)}
+.pc-menu svg{width:16px;height:16px}
+.pc-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--t);margin-bottom:10px}
+.pc-meta{display:flex;align-items:center;gap:16px}
+.pc-mi{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t2);font-weight:500}
+.pc-dot{width:7px;height:7px;border-radius:50%}
+
+/* HABIT ROW */
+.hrows{display:flex;flex-direction:column;gap:10px;padding:0 22px}
+.hrow{background:var(--surface);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:14px;box-shadow:var(--sh0);cursor:pointer}
+.hi-box{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0}
+.hi-col{flex:1;min-width:0}
+.hi-name{font-size:14px;font-weight:600;color:var(--t)}
+.hi-sub{font-size:12px;color:var(--t3);margin-top:2px}
+.hi-dots{display:flex;gap:3px;margin-top:6px}
+.hd{width:7px;height:7px;border-radius:50%;background:var(--bd)}
+.hd.on{background:var(--p)}
+.hring{width:34px;height:34px;border-radius:50%;border:2.5px solid var(--bd);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.hring.done{border-color:var(--p);background:var(--p)}
+.hring.done::after{content:'';width:5px;height:9px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px);display:block}
+
+/* TASKS VIEW */
+.vtop{padding:52px 22px 18px;display:flex;align-items:flex-end;justify-content:space-between}
+.vttl{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;color:var(--t);letter-spacing:-.5px}
+.aib{width:42px;height:42px;background:var(--p);border-radius:14px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(91,76,245,0.3);transition:transform .14s}
+.aib:active{transform:scale(.9)}
+.aib svg{width:18px;height:18px;color:#fff;stroke-width:2.5}
+.fscroll{display:flex;gap:8px;padding:0 22px;margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
+.fscroll::-webkit-scrollbar{display:none}
+.chip{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:500;white-space:nowrap;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all .15s;background:var(--surface);color:var(--t2);box-shadow:var(--sh0)}
+.chip.on{background:var(--p);color:#fff;box-shadow:0 4px 14px rgba(91,76,245,0.3)}
+
+/* TASK CARD */
+.tstack{display:flex;flex-direction:column;gap:10px;padding:0 22px}
+.tc{background:var(--surface);border-radius:var(--r);padding:16px 16px 14px;box-shadow:var(--sh0);cursor:pointer;transition:transform .12s;position:relative;overflow:hidden}
+.tc:active{transform:scale(.988)}
+.tc.over-due{background:#FFF8F9}
+.tc.done-c{opacity:.55}
+.tc-acc{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px}
+.a-todo{background:var(--p)}.a-hi{background:var(--err)}.a-med{background:var(--warn)}.a-ok{background:var(--ok)}.a-dn{background:var(--t3)}
+.tc-in{padding-left:12px}
+.tc-type{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px}
+.tc-hdr{display:flex;align-items:flex-start;gap:10px}
+.tc-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--bd);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;margin-top:2px}
+.tc-chk.on{background:var(--p);border-color:var(--p)}
+.tc-chk.on::after{content:'';width:5px;height:9px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px);display:block}
+.tc-ttl{flex:1;font-size:15px;font-weight:600;color:var(--t);line-height:1.3}
+.tc.done-c .tc-ttl{text-decoration:line-through;color:var(--t3)}
+.tc-desc{font-size:12px;color:var(--t2);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;padding-left:32px}
+.tc-foot{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.tbadge{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:4px 9px;border-radius:20px}
+.tb-d{background:var(--pl);color:var(--p)}.tb-d.over{background:var(--errl);color:var(--err)}.tb-p{background:var(--s2);color:var(--t2)}.tb-r{background:var(--okl);color:var(--ok)}
+.tc-edit{margin-left:auto;width:28px;height:28px;border-radius:8px;border:none;background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);flex-shrink:0}
+.tc-edit svg{width:13px;height:13px}
+.spb{margin-top:10px}.spb-bar{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;margin-bottom:4px}.spb-fill{height:100%;background:var(--p);border-radius:3px;transition:width .4s}.spb-lbl{font-size:11px;color:var(--t3);display:flex;justify-content:space-between}
+
+/* CALENDAR */
+.cal-top{padding:52px 22px 10px}
+.cal-dl{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--t)}
+.cal-wdl{font-size:14px;color:var(--t2);margin-top:2px}
+.cal-nr{display:flex;align-items:center;justify-content:space-between;padding:14px 22px 14px}
+.cal-ml{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--t)}
+.cal-navs{display:flex;gap:6px}
+.cal-nb{width:32px;height:32px;background:var(--surface);border-radius:10px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);box-shadow:var(--sh0)}
+.cal-nb svg{width:14px;height:14px}
+.cgw{background:var(--surface);border-radius:var(--r);margin:0 22px;box-shadow:var(--sh0);overflow:hidden}
+.cwds{display:grid;grid-template-columns:repeat(7,1fr);padding:14px 8px 6px}
+.cwd{text-align:center;font-size:12px;font-weight:600;color:var(--t3)}
+.cdg{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:0 8px 14px}
+.cday{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--t2);border-radius:50%;cursor:pointer;position:relative;transition:all .14s}
+.cday:active{transform:scale(.87)}
+.cday.oth{color:var(--t3);opacity:.35}
+.cday.td{background:var(--t);color:#fff;font-weight:700}
+.cday.sel{background:var(--pl);color:var(--p);font-weight:700}
+.cday.has::after{content:'';position:absolute;bottom:2px;width:4px;height:4px;border-radius:50%;background:var(--p)}
+.cday.td.has::after{background:rgba(255,255,255,.7)}
+.cal-ts{padding:18px 22px 0}
+.cal-ts-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-ts-ttl{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--t)}
+.cal-tadd{width:36px;height:36px;background:var(--p);border-radius:12px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 12px rgba(91,76,245,0.3)}
+.cal-tadd svg{width:16px;height:16px;color:#fff;stroke-width:2.5}
+.ctr{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--bg);cursor:pointer}
+.ctr:last-child{border-bottom:none}
+.ct-ico{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.ct-ico svg{width:15px;height:15px}
+.ct-inf{flex:1}
+.ct-type{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.ct-name{font-size:14px;font-weight:600;color:var(--t)}
+.ct-time{font-size:12px;color:var(--t3);margin-top:2px}
+.ctchk{width:22px;height:22px;border-radius:50%;border:2px solid var(--bd);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;margin-top:6px}
+.ctchk.on{background:var(--p);border-color:var(--p)}
+.ctchk.on::after{content:'';width:5px;height:8px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px);display:block}
+
+/* HABITS VIEW */
+.hstats{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 22px;margin-bottom:20px}
+.hsc{background:var(--surface);border-radius:var(--r);padding:16px;box-shadow:var(--sh0)}
+.hsn{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--t)}
+.hsl{font-size:12px;color:var(--t3);margin-top:3px;font-weight:500}
+.hsc.pri .hsn{color:var(--p)}.hsc.suc .hsn{color:var(--ok)}
+
+/* MORE */
+.mlist{display:flex;flex-direction:column;gap:8px;padding:0 22px}
+.mgl{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin:6px 0 4px}
+.mi{background:var(--surface);border-radius:var(--r);display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;transition:all .14s;box-shadow:var(--sh0)}
+.mi:active{transform:scale(.98)}
+.mico{width:38px;height:38px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mico svg{width:18px;height:18px}
+.minf{flex:1}
+.mit{font-size:15px;font-weight:600;color:var(--t)}
+.mis{font-size:12px;color:var(--t3);margin-top:1px}
+.mchev svg{width:14px;height:14px;color:var(--t3)}
+.tog{width:44px;height:26px;background:var(--bd);border-radius:13px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.tog.on{background:var(--p)}
+.tog::after{content:'';width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.tog.on::after{transform:translateX(18px)}
+
+/* DETAIL BACK */
+.dback{padding:50px 22px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--p);font-size:15px;font-weight:500}
+.dback svg{width:18px;height:18px}
+
+/* PROJECTS FULL */
+.pfg{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 22px}
+.pfc{background:var(--surface);border-radius:var(--r);padding:18px 14px;box-shadow:var(--sh0);cursor:pointer;transition:transform .14s}
+.pfc:active{transform:scale(.96)}
+.pf-ico{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px}
+.pf-n{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--t);margin-bottom:4px}
+.pf-c{font-size:12px;color:var(--t3);margin-bottom:10px}
+.pfbar{height:4px;background:var(--bg);border-radius:2px;overflow:hidden}
+.pfbar-f{height:100%;border-radius:2px;background:var(--p);transition:width .4s}
+.apc{display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--bd);color:var(--t3);font-size:12px;gap:8px;min-height:120px;background:none;border-radius:var(--r);cursor:pointer;font-family:'DM Sans',sans-serif}
+.apc svg{width:24px;height:24px}
+
+/* TRASH */
+.tr-row{background:var(--surface);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:var(--sh0)}
+.tr-info{flex:1;min-width:0}
+.tr-t{font-size:14px;font-weight:600;color:var(--t2);text-decoration:line-through}
+.tr-s{font-size:11px;color:var(--t3);margin-top:2px}
+.restore{padding:7px 12px;background:var(--pl);color:var(--p);border:none;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+
+/* MODALS */
+.mover{position:absolute;inset:0;background:rgba(21,20,26,.4);backdrop-filter:blur(6px);z-index:200;display:none;align-items:flex-end}
+.mover.open{display:flex}
+.msh{width:100%;background:var(--surface);border-radius:28px 28px 0 0;max-height:92vh;overflow-y:auto;animation:sUp .3s cubic-bezier(.22,1,.36,1);padding-bottom:calc(24px + var(--sb))}
+@keyframes sUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mhnd{width:40px;height:4px;background:var(--bd);border-radius:2px;margin:14px auto 10px}
+.mhdr{display:flex;align-items:center;justify-content:space-between;padding:6px 22px 18px}
+.mttl{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--t)}
+.mx{width:34px;height:34px;border-radius:50%;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2)}
+.mx svg{width:14px;height:14px}
+.mbody{padding:0 22px;display:flex;flex-direction:column;gap:16px}
+.mbtns{padding:20px 22px 0;display:flex;gap:10px}
+
+/* FORMS */
+.fg{display:flex;flex-direction:column;gap:6px}
+.fl{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.7px}
+.fi{width:100%;padding:13px 15px;border-radius:var(--rs);border:1.5px solid var(--bd);background:var(--s2);font-family:'DM Sans',sans-serif;font-size:15px;color:var(--t);outline:none;transition:border-color .2s}
+.fi:focus{border-color:var(--p);background:var(--surface)}
+.fi::placeholder{color:var(--t3)}
+textarea.fi{resize:none;min-height:80px;line-height:1.5}
+select.fi{-webkit-appearance:none;cursor:pointer}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pbs{display:flex;gap:8px}
+.pb{flex:1;padding:10px 6px;border-radius:var(--rs);border:1.5px solid var(--bd);font-size:12px;font-weight:600;cursor:pointer;text-align:center;font-family:inherit;background:var(--s2);color:var(--t2);transition:all .15s}
+.pb[data-v="low"].on{background:var(--okl);border-color:#86EFAC;color:#15803D}
+.pb[data-v="medium"].on{background:var(--warnl);border-color:#FCD34D;color:#92400E}
+.pb[data-v="high"].on{background:var(--errl);border-color:#FCA5A5;color:var(--err)}
+.rbs{display:flex;gap:6px;flex-wrap:wrap}
+.rb{padding:7px 13px;border-radius:20px;font-size:12px;font-weight:500;border:1.5px solid var(--bd);background:var(--s2);color:var(--t2);cursor:pointer;font-family:inherit;transition:all .15s}
+.rb.on{background:var(--pl);border-color:var(--p);color:var(--p)}
+.btn{padding:15px 20px;border-radius:var(--rs);border:none;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.bp{background:var(--p);color:#fff;flex:1;box-shadow:0 4px 16px rgba(91,76,245,.3)}
+.bg{background:var(--bg);color:var(--t2)}
+.bd2{background:var(--err);color:#fff}
+.sl2{display:flex;flex-direction:column;gap:6px}
+.si{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--s2);border-radius:10px}
+.sc{width:18px;height:18px;border-radius:50%;border:2px solid var(--bd);flex-shrink:0;cursor:pointer;transition:all .15s}
+.sc.on{background:var(--p);border-color:var(--p)}
+.sinp{flex:1;border:none;background:none;outline:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--t)}
+.srm{width:18px;height:18px;border-radius:50%;background:var(--t3);border:none;color:#fff;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.asb{display:flex;align-items:center;gap:6px;padding:9px 12px;color:var(--p);font-size:13px;font-weight:500;cursor:pointer;border:1.5px dashed var(--pl);border-radius:10px;background:none;font-family:inherit;width:100%;transition:background .15s}
+.asb:hover{background:var(--pl)}
+.asb svg{width:13px;height:13px}
+.fchips{display:flex;flex-wrap:wrap;gap:6px}
+.fch{display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--s2);border-radius:8px;font-size:12px;color:var(--t)}
+.fch svg{width:12px;height:12px;color:var(--p)}
+.fcrm{width:14px;height:14px;border-radius:50%;background:var(--t3);border:none;color:#fff;cursor:pointer;font-size:9px;padding:0;display:flex;align-items:center;justify-content:center}
+.egrid{display:flex;gap:6px;flex-wrap:wrap}
+.eo{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;border:2px solid transparent;transition:all .15s}
+.eo.on{border-color:var(--p);background:var(--pl)}
+.crow{display:flex;gap:8px}
+.cdot{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .15s}
+.cdot.on{border-color:var(--t);transform:scale(1.15)}
+
+/* TOAST */
+#toast{position:absolute;bottom:calc(var(--nh) + 14px);left:50%;transform:translateX(-50%) translateY(16px);background:var(--t);color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:500;white-space:nowrap;opacity:0;transition:all .3s;z-index:500;pointer-events:none}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* EMPTY */
+.emp{display:flex;flex-direction:column;align-items:center;padding:40px 20px;color:var(--t3);text-align:center;gap:10px}
+.emp svg{width:52px;height:52px;opacity:.22}
+.emp h3{font-size:15px;font-weight:600;color:var(--t2)}
+.emp p{font-size:13px;line-height:1.5}
+.sp{height:24px}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- HOME -->
+<div class="view active" id="view-home">
+  <div class="h-hdr">
+    <div class="h-user">
+      <div class="av">🧑</div>
+      <div class="h-u-info">
+        <div class="h-u-sub">Добро пожаловать</div>
+        <div class="h-u-name">TaskFlow</div>
+      </div>
+    </div>
+    <div class="bell-btn" onclick="switchView('more')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <div class="bdot" id="bdot"></div>
+    </div>
+  </div>
+
+  <div class="sh"><span class="sl">Обзор</span>
+    <button class="ddrop">Эта неделя <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+  </div>
+  <div class="ov-grid">
+    <div class="ov-card ov1" onclick="switchView('tasks');setF2('today')">
+      <div class="ov-top"><div class="ov-n" id="ov1">0</div>
+        <svg class="ov-w" viewBox="0 0 54 28" fill="none"><path d="M2 18C8 14 12 8 18 10S28 20 34 16 44 6 52 10" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </div>
+      <div class="ov-bot"><span class="ov-lbl">Сегодня</span><div class="ov-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div></div>
+    </div>
+    <div class="ov-card ov2" onclick="switchView('tasks')">
+      <div class="ov-top"><div class="ov-n" id="ov2">0</div>
+        <svg class="ov-w" viewBox="0 0 54 28" fill="none"><path d="M2 20C6 10 10 22 18 14S26 4 34 12 42 22 52 16" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </div>
+      <div class="ov-bot"><span class="ov-lbl">Расписание</span><div class="ov-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div></div>
+    </div>
+    <div class="ov-card ov3" onclick="switchView('projects')">
+      <div class="ov-top"><div class="ov-n" id="ov3">0</div>
+        <svg class="ov-w" viewBox="0 0 54 28" fill="none"><path d="M2 16C10 6 14 20 22 14S32 8 38 16 46 22 52 12" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </div>
+      <div class="ov-bot"><span class="ov-lbl">Проекты</span><div class="ov-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div></div>
+    </div>
+    <div class="ov-card ov4" onclick="switchView('tasks');setF2('completed')">
+      <div class="ov-top"><div class="ov-n" id="ov4">0</div>
+        <svg class="ov-w" viewBox="0 0 54 28" fill="none"><path d="M2 12C8 20 14 6 20 14S30 22 36 14 44 8 52 18" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </div>
+      <div class="ov-bot"><span class="ov-lbl">Выполнено</span><div class="ov-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div></div>
+    </div>
+  </div>
+
+  <div class="sh"><span class="sl">Проекты</span>
+    <button class="ddrop">Всегда <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:11px;height:11px"><path d="M6 9l6 6 6-6"/></svg></button>
+  </div>
+  <div class="ptabs">
+    <button class="ptab on" onclick="setHPTab('my',this)">Мои проекты</button>
+    <button class="ptab" onclick="setHPTab('all',this)">Все задачи</button>
+  </div>
+  <div class="pcards" id="hpc"></div>
+  <div class="sp"></div>
+  <div class="sh"><span class="sl">Привычки</span><button class="see-all" onclick="switchView('habits')">Все →</button></div>
+  <div class="hrows" id="hhab"></div>
+  <div class="sp"></div>
+</div>
+
+<!-- TASKS -->
+<div class="view" id="view-tasks">
+  <div class="vtop"><div class="vttl">Задачи</div>
+    <button class="aib" onclick="openAddTask()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></button>
+  </div>
+  <div class="fscroll" id="tfilters">
+    <button class="chip on" data-f="all" onclick="setF('all',this)">Все</button>
+    <button class="chip" data-f="today" onclick="setF('today',this)">Сегодня</button>
+    <button class="chip" data-f="overdue" onclick="setF('overdue',this)">Просрочено</button>
+    <button class="chip" data-f="upcoming" onclick="setF('upcoming',this)">Предстоящие</button>
+    <button class="chip" data-f="completed" onclick="setF('completed',this)">Выполненные</button>
+  </div>
+  <div class="tstack" id="tlist"></div>
+</div>
+
+<!-- CALENDAR -->
+<div class="view" id="view-calendar">
+  <div class="cal-top">
+    <div class="cal-dl" id="cdl"></div>
+    <div class="cal-wdl" id="cwdl"></div>
+  </div>
+  <div class="cal-nr">
+    <div class="cal-ml" id="cml"></div>
+    <div class="cal-navs">
+      <button class="cal-nb" onclick="chMo(-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button class="cal-nb" onclick="chMo(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
+  </div>
+  <div class="cgw">
+    <div class="cwds"><div class="cwd">Вс</div><div class="cwd">Пн</div><div class="cwd">Вт</div><div class="cwd">Ср</div><div class="cwd">Чт</div><div class="cwd">Пт</div><div class="cwd">Сб</div></div>
+    <div class="cdg" id="cdays"></div>
+  </div>
+  <div class="cal-ts">
+    <div class="cal-ts-hdr">
+      <div class="cal-ts-ttl" id="ctttl">Задачи на день</div>
+      <button class="cal-tadd" onclick="openAddTask()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <div id="ctlist"></div>
+  </div>
+</div>
+
+<!-- HABITS -->
+<div class="view" id="view-habits">
+  <div class="vtop"><div class="vttl">Привычки</div>
+    <button class="aib" onclick="openAddHabit()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></button>
+  </div>
+  <div class="hstats">
+    <div class="hsc pri"><div class="hsn" id="hs1">0</div><div class="hsl">Всего привычек</div></div>
+    <div class="hsc suc"><div class="hsn" id="hs2">0</div><div class="hsl">Выполнено сегодня</div></div>
+  </div>
+  <div class="hrows" id="hlist"></div>
+</div>
+
+<!-- MORE -->
+<div class="view" id="view-more">
+  <div class="vtop"><div class="vttl">Ещё</div></div>
+  <div class="mlist">
+    <div class="mgl">Разделы</div>
+    <div class="mi" onclick="switchView('projects')">
+      <div class="mico" style="background:#EDE9FF"><svg viewBox="0 0 24 24" fill="none" stroke="#5B4CF5" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
+      <div class="minf"><div class="mit">Проекты</div><div class="mis" id="mps">0 проектов</div></div>
+      <div class="mchev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+    </div>
+    <div class="mi" onclick="switchView('trash')">
+      <div class="mico" style="background:#FFF0F3"><svg viewBox="0 0 24 24" fill="none" stroke="#F04E6A" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></div>
+      <div class="minf"><div class="mit">Корзина</div><div class="mis" id="mts">Пусто</div></div>
+      <div class="mchev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+    </div>
+    <div class="mgl">Данные</div>
+    <div class="mi" onclick="exportData()">
+      <div class="mico" style="background:#E8FBF3"><svg viewBox="0 0 24 24" fill="none" stroke="#2DB87A" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+      <div class="minf"><div class="mit">Экспорт данных</div><div class="mis">Скачать JSON-бэкап</div></div>
+      <div class="mchev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+    </div>
+    <div class="mi" onclick="document.getElementById('imp').click()">
+      <div class="mico" style="background:#FFF8ED"><svg viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+      <div class="minf"><div class="mit">Импорт данных</div><div class="mis">Восстановить из JSON</div></div>
+      <div class="mchev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+    </div>
+    <input type="file" id="imp" accept=".json" style="display:none" onchange="importData(this)">
+    <div class="mgl">Настройки</div>
+    <div class="mi">
+      <div class="mico" style="background:#EDE9FF"><svg viewBox="0 0 24 24" fill="none" stroke="#5B4CF5" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+      <div class="minf"><div class="mit">Уведомления</div><div class="mis" id="nls">Выключены</div></div>
+      <div class="tog" id="ntog" onclick="toggleNotif()"></div>
+    </div>
+    <div style="text-align:center;padding:20px 0;color:var(--t3);font-size:12px">TaskFlow v1.0 · Работает офлайн</div>
+  </div>
+</div>
+
+<!-- PROJECTS FULL -->
+<div class="view" id="view-projects">
+  <div class="dback" onclick="switchView('more')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Назад</div>
+  <div style="padding:0 22px 16px;display:flex;align-items:center;justify-content:space-between">
+    <div class="vttl">Проекты</div>
+    <button class="aib" onclick="openAddProject()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></button>
+  </div>
+  <div class="pfg" id="pfg"></div>
+</div>
+
+<!-- TRASH -->
+<div class="view" id="view-trash">
+  <div class="dback" onclick="switchView('more')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Назад</div>
+  <div style="padding:0 22px 16px;display:flex;align-items:center;justify-content:space-between">
+    <div class="vttl">Корзина</div>
+    <button class="btn bg" style="padding:9px 14px;font-size:13px" onclick="emptyTrash()">Очистить</button>
+  </div>
+  <div style="padding:0 22px 12px;font-size:12px;color:var(--t3)">Хранятся 30 дней после удаления</div>
+  <div class="tstack" id="trlist"></div>
+</div>
+
+<!-- NAV -->
+<nav id="bnav">
+  <div class="npill">
+    <button class="nb active" data-v="home" onclick="sw('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></button>
+    <button class="nb" data-v="tasks" onclick="sw('tasks')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
+    <div class="nadd-w"><div class="nadd" onclick="openAddTask()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div></div>
+    <button class="nb" data-v="calendar" onclick="sw('calendar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button>
+    <button class="nb" data-v="habits" onclick="sw('habits')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></button>
+  </div>
+</nav>
+
+<!-- MODAL: TASK -->
+<div class="mover" id="mt">
+  <div class="msh">
+    <div class="mhnd"></div>
+    <div class="mhdr"><div class="mttl" id="mttl">Новая задача</div><button class="mx" onclick="cM('mt')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+    <div class="mbody">
+      <div class="fg"><label class="fl">Название *</label><input class="fi" id="tn" placeholder="Что нужно сделать?"></div>
+      <div class="fg"><label class="fl">Описание</label><textarea class="fi" id="tdesc" placeholder="Детали..."></textarea></div>
+      <div class="fg"><label class="fl">Проект</label><select class="fi" id="tproj"></select></div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Дедлайн</label><input class="fi" type="date" id="tdl"></div>
+        <div class="fg"><label class="fl">Время</label><input class="fi" type="time" id="ttm"></div>
+      </div>
+      <div class="fg"><label class="fl">Напоминание</label><input class="fi" type="datetime-local" id="trem"></div>
+      <div class="fg"><label class="fl">Приоритет</label>
+        <div class="pbs">
+          <button class="pb on" data-v="low" onclick="setPri('low',this)">Низкий</button>
+          <button class="pb" data-v="medium" onclick="setPri('medium',this)">Средний</button>
+          <button class="pb" data-v="high" onclick="setPri('high',this)">Высокий</button>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Повтор</label>
+        <div class="rbs">
+          <button class="rb on" data-r="none" onclick="setRec('none',this)">Нет</button>
+          <button class="rb" data-r="daily" onclick="setRec('daily',this)">Ежедневно</button>
+          <button class="rb" data-r="weekly" onclick="setRec('weekly',this)">Еженедельно</button>
+          <button class="rb" data-r="monthly" onclick="setRec('monthly',this)">Ежемесячно</button>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Подзадачи</label>
+        <div class="sl2" id="sl"></div>
+        <button class="asb" onclick="addSub()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Добавить подзадачу</button>
+      </div>
+      <div class="fg"><label class="fl">Вложения</label>
+        <div class="fchips" id="fch"></div>
+        <button class="btn bg" style="margin-top:8px;width:100%;padding:11px" onclick="document.getElementById('fin').click()">📎 Прикрепить файл</button>
+        <input type="file" id="fin" style="display:none" multiple onchange="handleF(this)">
+      </div>
+    </div>
+    <div class="mbtns">
+      <button class="btn bp" onclick="saveTask()">Сохранить</button>
+      <button class="btn bd2" id="tdel" style="display:none" onclick="delTask()">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PROJECT -->
+<div class="mover" id="mp">
+  <div class="msh">
+    <div class="mhnd"></div>
+    <div class="mhdr"><div class="mttl" id="mpttl">Новый проект</div><button class="mx" onclick="cM('mp')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+    <div class="mbody">
+      <div class="fg"><label class="fl">Название *</label><input class="fi" id="pn" placeholder="Название проекта"></div>
+      <div class="fg"><label class="fl">Иконка</label><div class="egrid" id="peg"></div></div>
+      <div class="fg"><label class="fl">Цвет</label>
+        <div class="crow" id="pcr">
+          <div class="cdot on" data-c="#EDE9FF" style="background:#EDE9FF" onclick="setPCol('#EDE9FF',this)"></div>
+          <div class="cdot" data-c="#E8FBF3" style="background:#E8FBF3" onclick="setPCol('#E8FBF3',this)"></div>
+          <div class="cdot" data-c="#FFF8ED" style="background:#FFF8ED" onclick="setPCol('#FFF8ED',this)"></div>
+          <div class="cdot" data-c="#FFF0F3" style="background:#FFF0F3" onclick="setPCol('#FFF0F3',this)"></div>
+          <div class="cdot" data-c="#ECF5FF" style="background:#ECF5FF" onclick="setPCol('#ECF5FF',this)"></div>
+          <div class="cdot" data-c="#F4F3FB" style="background:#F4F3FB" onclick="setPCol('#F4F3FB',this)"></div>
+        </div>
+      </div>
+    </div>
+    <div class="mbtns">
+      <button class="btn bp" onclick="saveProj()">Сохранить</button>
+      <button class="btn bd2" id="pdel" style="display:none" onclick="delProj()">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: HABIT -->
+<div class="mover" id="mh">
+  <div class="msh">
+    <div class="mhnd"></div>
+    <div class="mhdr"><div class="mttl" id="mhttl">Новая привычка</div><button class="mx" onclick="cM('mh')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+    <div class="mbody">
+      <div class="fg"><label class="fl">Название *</label><input class="fi" id="hn" placeholder="Например: Пить воду 💧"></div>
+      <div class="fg"><label class="fl">Иконка</label><div class="egrid" id="heg"></div></div>
+      <div class="fg"><label class="fl">Частота</label>
+        <div class="rbs">
+          <button class="rb on" data-hf="daily" onclick="setHF('daily',this)">Каждый день</button>
+          <button class="rb" data-hf="weekly" onclick="setHF('weekly',this)">Еженедельно</button>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Цвет</label>
+        <div class="crow" id="hcr">
+          <div class="cdot on" data-c="#EDE9FF" style="background:#EDE9FF" onclick="setHCol('#EDE9FF',this)"></div>
+          <div class="cdot" data-c="#E8FBF3" style="background:#E8FBF3" onclick="setHCol('#E8FBF3',this)"></div>
+          <div class="cdot" data-c="#FFF8ED" style="background:#FFF8ED" onclick="setHCol('#FFF8ED',this)"></div>
+          <div class="cdot" data-c="#FFF0F3" style="background:#FFF0F3" onclick="setHCol('#FFF0F3',this)"></div>
+          <div class="cdot" data-c="#ECF5FF" style="background:#ECF5FF" onclick="setHCol('#ECF5FF',this)"></div>
+          <div class="cdot" data-c="#CCFBF1" style="background:#CCFBF1" onclick="setHCol('#CCFBF1',this)"></div>
+        </div>
+      </div>
+    </div>
+    <div class="mbtns">
+      <button class="btn bp" onclick="saveHabit()">Сохранить</button>
+      <button class="btn bd2" id="hdel" style="display:none" onclick="delHabit()">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+</div>
+
+<script>
+const PE=['📁','📌','💼','🎯','🚀','💡','🎨','📚','🏠','💪','🌿','⭐','🔥','🎵','💻'];
+const HE=['💧','🏃','📖','🧘','😴','🍎','💊','✍️','🎸','🌅','🧹','🚶','🧠','❤️','🌙'];
+const MR=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const MR2=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const WD=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+
+let S={tasks:[],projects:[],habits:[],settings:{notificationsEnabled:false}};
+let eTId=null,ePId=null,eHId=null,cf='all',calD=new Date(),selD=null;
+let tPri='low',tRec='none',tFiles=[],tSubs=[];
+let tPC='#EDE9FF',tPE='📁',tHC='#EDE9FF',tHE='💧',tHF='daily';
+let rTs=[],hpTab='my',curV='home';
+
+function sv(){try{localStorage.setItem('tf3',JSON.stringify(S));}catch(e){}}
+function lv(){try{const d=localStorage.getItem('tf3');if(d){const p=JSON.parse(d);S={...S,...p};}}catch(e){}['tasks','projects','habits'].forEach(k=>{if(!S[k])S[k]=[];});}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+function td(){const d=new Date();return`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;}
+function p2(n){return String(n).padStart(2,'0');}
+function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmt(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00'),t=td();if(ds===t)return'Сегодня';const tm=new Date();tm.setDate(tm.getDate()+1);if(ds===tm.toISOString().slice(0,10))return'Завтра';return`${d.getDate()} ${MR2[d.getMonth()]}`;}
+function isOver(t){return!t.deadline||t.completed||t.deleted?false:t.deadline<td();}
+function isToday(t){return t.deadline===td();}
+function doneTd(h){return h.completions&&h.completions.includes(td());}
+function strk(h){if(!h.completions||!h.completions.length)return 0;let s=0,d=new Date();while(true){const ds=d.toISOString().slice(0,10);if(h.completions.includes(ds)){s++;d.setDate(d.getDate()-1);}else break;}return s;}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2500);}
+
+function sw(n){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  const v=document.getElementById(`view-${n}`);if(v){v.classList.add('active');curV=n;}
+  const nb=document.querySelector(`.nb[data-v="${n}"]`);if(nb)nb.classList.add('active');
+  rv(n);
+}
+function switchView(n){sw(n);}
+function rv(n){
+  if(n==='home')rHome();else if(n==='tasks')rTasks();else if(n==='calendar')rCal();
+  else if(n==='habits')rHabits();else if(n==='more')rMore();
+  else if(n==='projects')rProjsFull();else if(n==='trash')rTrash();
+}
+
+/* HOME */
+function setHPTab(t,el){hpTab=t;document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('on'));el.classList.add('on');rHPC();}
+function rHome(){
+  const ac=S.tasks.filter(t=>!t.deleted&&!t.completed&&!t.parentId);
+  document.getElementById('ov1').textContent=ac.filter(isToday).length;
+  document.getElementById('ov2').textContent=ac.length;
+  document.getElementById('ov3').textContent=S.projects.length;
+  document.getElementById('ov4').textContent=S.tasks.filter(t=>!t.deleted&&t.completed).length;
+  const od=ac.filter(isOver);document.getElementById('bdot').classList.toggle('on',od.length>0);
+  rHPC();
+  const hh=document.getElementById('hhab');const hs=S.habits.slice(0,3);
+  hh.innerHTML=hs.length?hs.map(h=>hRowHTML(h)).join(''):`<div class="emp" style="padding:16px 0"><p>Нет привычек. Создайте первую!</p></div>`;
+}
+function rHPC(){
+  const el=document.getElementById('hpc');
+  if(hpTab==='my'){
+    const ps=S.projects.slice(0,3);
+    if(!ps.length){el.innerHTML=`<div class="emp" style="padding:16px 0"><p>Нет проектов. Создайте первый!</p></div>`;return;}
+    el.innerHTML=ps.map(projHTML).join('');
+  } else {
+    const ts=S.tasks.filter(t=>!t.deleted&&!t.completed&&!t.parentId).slice(0,4);
+    if(!ts.length){el.innerHTML=`<div class="emp" style="padding:16px 0"><p>Нет активных задач</p></div>`;return;}
+    el.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">${ts.map(tcHTML).join('')}</div>`;
+  }
+}
+function projHTML(p){
+  const ts=S.tasks.filter(t=>t.projectId===p.id&&!t.deleted);
+  const done=ts.filter(t=>t.completed).length;
+  const active=ts.length-done;
+  const subs=S.tasks.filter(t=>ts.some(pt=>pt.id===t.parentId)&&!t.deleted).length;
+  const dt=new Date(p.createdAt||Date.now());
+  return`<div class="pcard" onclick="openAddProject('${p.id}')">
+    <div class="pc-top">
+      <div class="pc-date"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${dt.getDate()} ${MR2[dt.getMonth()]} ${dt.getFullYear()}</div>
+      <button class="pc-menu" onclick="event.stopPropagation();openAddProject('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg></button>
+    </div>
+    <div class="pc-name">${p.icon||'📁'} ${esc(p.name)}</div>
+    <div class="pc-meta">
+      <div class="pc-mi"><div class="pc-dot" style="background:var(--p)"></div>Задач: ${active}</div>
+      <div class="pc-mi"><div class="pc-dot" style="background:var(--ok)"></div>Подзадач: ${subs}</div>
+    </div>
+  </div>`;
+}
+
+/* TASKS */
+function rTasks(){
+  const el=document.getElementById('tlist');
+  let ts=S.tasks.filter(t=>!t.deleted&&!t.parentId);
+  if(cf==='today')ts=ts.filter(isToday);
+  else if(cf==='overdue')ts=ts.filter(isOver);
+  else if(cf==='upcoming')ts=ts.filter(t=>!t.completed&&t.deadline&&t.deadline>td());
+  else if(cf==='completed')ts=ts.filter(t=>t.completed);
+  else ts=ts.filter(t=>!t.completed);
+  ts.sort((a,b)=>{if(isOver(a)&&!isOver(b))return-1;if(!isOver(a)&&isOver(b))return 1;if(a.deadline&&b.deadline)return a.deadline.localeCompare(b.deadline);if(a.deadline)return-1;if(b.deadline)return 1;return 0;});
+  if(!ts.length){el.innerHTML=`<div class="emp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><h3>Задач нет</h3><p>Нажмите + чтобы создать задачу</p></div>`;return;}
+  el.innerHTML=ts.map(tcHTML).join('');
+}
+function setF(f,el){cf=f;document.querySelectorAll('#tfilters .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');rTasks();}
+function setF2(f){cf=f;document.querySelectorAll('#tfilters .chip').forEach(c=>c.classList.toggle('on',c.dataset.f===f));rTasks();}
+function tcHTML(t){
+  const ov=isOver(t);
+  const pr=S.projects.find(p=>p.id===t.projectId);
+  const subs=S.tasks.filter(s=>s.parentId===t.id&&!s.deleted);
+  const ds=subs.filter(s=>s.completed).length;
+  const pct=subs.length?Math.round(ds/subs.length*100):null;
+  const ac=t.completed?'a-dn':ov?'a-hi':t.priority==='high'?'a-hi':t.priority==='medium'?'a-med':'a-todo';
+  const lbl=ov?'Просрочено':t.priority==='high'?'Срочно':t.recurring&&t.recurring!=='none'?'Повтор':'To Do';
+  return`<div class="tc ${ov?'over-due':''} ${t.completed?'done-c':''}" onclick="editTask('${t.id}')">
+    <div class="tc-acc ${ac}"></div>
+    <div class="tc-in">
+      <div class="tc-type">${lbl}</div>
+      <div class="tc-hdr">
+        <div class="tc-chk ${t.completed?'on':''}" onclick="event.stopPropagation();togTask('${t.id}')"></div>
+        <div class="tc-ttl">${esc(t.title)}</div>
+        <button class="tc-edit" onclick="event.stopPropagation();openAddTask('${t.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      </div>
+      ${t.description?`<div class="tc-desc">${esc(t.description)}</div>`:''}
+      <div class="tc-foot">
+        ${t.deadline?`<span class="tbadge tb-d ${ov?'over':''}">📅 ${fmt(t.deadline)}${t.deadlineTime?' '+t.deadlineTime:''}</span>`:''}
+        ${pr?`<span class="tbadge tb-p">${pr.icon} ${esc(pr.name)}</span>`:''}
+        ${t.recurring&&t.recurring!=='none'?`<span class="tbadge tb-r">🔄</span>`:''}
+        ${t.files&&t.files.length?`<span class="tbadge tb-p">📎 ${t.files.length}</span>`:''}
+      </div>
+      ${pct!==null?`<div class="spb"><div class="spb-bar"><div class="spb-fill" style="width:${pct}%"></div></div><div class="spb-lbl"><span>${ds}/${subs.length} подзадач</span><span>${pct}%</span></div></div>`:''}
+    </div>
+  </div>`;
+}
+function togTask(id){
+  const t=S.tasks.find(t=>t.id===id);if(!t)return;
+  t.completed=!t.completed;t.completedAt=t.completed?new Date().toISOString():null;
+  if(t.completed&&t.recurring&&t.recurring!=='none'){
+    const nx={...t,id:uid(),completed:false,completedAt:null,createdAt:new Date().toISOString()};
+    const d=new Date(t.deadline||new Date());
+    if(t.recurring==='daily')d.setDate(d.getDate()+1);
+    else if(t.recurring==='weekly')d.setDate(d.getDate()+7);
+    else if(t.recurring==='monthly')d.setMonth(d.getMonth()+1);
+    nx.deadline=d.toISOString().slice(0,10);S.tasks.push(nx);toast('↻ Создана повторяющаяся задача');
+  }
+  sv();rv(curV);if(t.completed)toast('Задача выполнена! 🎉');
+}
+function editTask(id){openAddTask(id);}
+
+/* CALENDAR */
+function rCal(){
+  const n=new Date();
+  document.getElementById('cdl').textContent=`${n.getDate()} ${MR2[n.getMonth()]}, ${n.getFullYear()}`;
+  document.getElementById('cwdl').textContent=WD[n.getDay()];
+  document.getElementById('cml').textContent=`${MR[calD.getMonth()]} ${calD.getFullYear()}`;
+  const yr=calD.getFullYear(),mo=calD.getMonth();
+  const first=new Date(yr,mo,1).getDay(),dim=new Date(yr,mo+1,0).getDate(),dipm=new Date(yr,mo,0).getDate();
+  const t=td();let h='';
+  for(let i=first-1;i>=0;i--)h+=`<div class="cday oth">${dipm-i}</div>`;
+  for(let d=1;d<=dim;d++){const ds=`${yr}-${p2(mo+1)}-${p2(d)}`;const ht=S.tasks.some(t=>t.deadline===ds&&!t.deleted);const iT=ds===t,iS=selD&&ds===selD;let cl='cday';if(iT)cl+=' td';else if(iS)cl+=' sel';if(ht)cl+=' has';h+=`<div class="${cl}" onclick="selCal('${ds}')">${d}</div>`;}
+  const tot=first+dim,rem=tot%7?7-(tot%7):0;for(let d=1;d<=rem;d++)h+=`<div class="cday oth">${d}</div>`;
+  document.getElementById('cdays').innerHTML=h;
+  rCalTasks(selD||t);
+}
+function selCal(ds){selD=ds;rCal();}
+function rCalTasks(ds){
+  const d=new Date(ds+'T00:00:00');
+  document.getElementById('ctttl').textContent=ds===td()?'Задачи на сегодня':`Задачи: ${d.getDate()} ${MR2[d.getMonth()]}`;
+  const ts=S.tasks.filter(t=>t.deadline===ds&&!t.deleted);
+  const el=document.getElementById('ctlist');
+  if(!ts.length){el.innerHTML=`<div class="emp" style="padding:24px 0"><p>Нет задач на этот день</p></div>`;return;}
+  const tm={high:['Срочно','var(--errl)','var(--err)'],medium:['Событие','var(--warnl)','var(--warn)'],low:['To Do','var(--pl)','var(--p)']};
+  el.innerHTML=ts.map(t=>{const[lbl,bg,clr]=tm[t.priority||'low'];return`<div class="ctr" onclick="editTask('${t.id}')"><div class="ct-ico" style="background:${bg}"><svg viewBox="0 0 24 24" fill="none" stroke="${clr}" stroke-width="2.5"><path d="M9 11l3 3L22 4"/></svg></div><div class="ct-inf"><div class="ct-type">${lbl}</div><div class="ct-name">${esc(t.title)}</div>${t.deadlineTime?`<div class="ct-time">${t.deadlineTime}</div>`:''}</div><div class="ctchk ${t.completed?'on':''}" onclick="event.stopPropagation();togTask('${t.id}')"></div></div>`;}).join('');}
+function chMo(d){calD.setMonth(calD.getMonth()+d);rCal();}
+
+/* HABITS */
+function rHabits(){
+  document.getElementById('hs1').textContent=S.habits.length;
+  document.getElementById('hs2').textContent=S.habits.filter(doneTd).length;
+  const el=document.getElementById('hlist');
+  if(!S.habits.length){el.innerHTML=`<div class="emp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><h3>Нет привычек</h3><p>Начните отслеживать ежедневные привычки</p></div>`;return;}
+  el.innerHTML=S.habits.map(h=>hRowHTML(h)).join('');
+}
+function hRowHTML(h){
+  const dT=doneTd(h),s=strk(h);let dots='';
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const ds=d.toISOString().slice(0,10);dots+=`<div class="hd ${h.completions&&h.completions.includes(ds)?'on':''}"></div>`;}
+  return`<div class="hrow" onclick="editHabit('${h.id}')"><div class="hi-box" style="background:${h.color||'#EDE9FF'}">${h.icon||'⭐'}</div><div class="hi-col"><div class="hi-name">${esc(h.name)}</div><div class="hi-sub">🔥 Серия: ${s} дн.</div><div class="hi-dots">${dots}</div></div><div class="hring ${dT?'done':''}" onclick="event.stopPropagation();togHabit('${h.id}')"></div></div>`;
+}
+function togHabit(id){const h=S.habits.find(h=>h.id===id);if(!h)return;const t=td();if(!h.completions)h.completions=[];if(h.completions.includes(t))h.completions=h.completions.filter(d=>d!==t);else{h.completions.push(t);toast('Привычка выполнена! 🔥');}sv();rv(curV);}
+function editHabit(id){openAddHabit(id);}
+
+/* MORE */
+function rMore(){
+  document.getElementById('mps').textContent=`${S.projects.length} проектов`;
+  const tr=S.tasks.filter(t=>t.deleted);document.getElementById('mts').textContent=tr.length?`${tr.length} задач`:'Пусто';
+  const tog=document.getElementById('ntog'),lbl=document.getElementById('nls');
+  if(S.settings.notificationsEnabled){tog.classList.add('on');lbl.textContent='Включены';}else{tog.classList.remove('on');lbl.textContent='Выключены';}
+}
+
+/* PROJECTS */
+function rProjsFull(){
+  const el=document.getElementById('pfg');
+  let h=S.projects.map(p=>{const ts=S.tasks.filter(t=>t.projectId===p.id&&!t.deleted);const done=ts.filter(t=>t.completed).length;const pct=ts.length?Math.round(done/ts.length*100):0;return`<div class="pfc" onclick="openAddProject('${p.id}')"><div class="pf-ico" style="background:${p.color||'#EDE9FF'}">${p.icon||'📁'}</div><div class="pf-n">${esc(p.name)}</div><div class="pf-c">${ts.length} задач · ${done} выполнено</div><div class="pfbar"><div class="pfbar-f" style="width:${pct}%"></div></div></div>`;}).join('');
+  h+=`<div class="apc" onclick="openAddProject()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Новый проект</div>`;
+  el.innerHTML=h;
+}
+
+/* TRASH */
+function rTrash(){
+  const el=document.getElementById('trlist');const tr=S.tasks.filter(t=>t.deleted);
+  if(!tr.length){el.innerHTML=`<div class="emp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg><h3>Корзина пуста</h3></div>`;return;}
+  el.innerHTML=tr.map(t=>{const dl=Math.max(0,30-Math.floor((Date.now()-new Date(t.deletedAt))/86400000));return`<div class="tr-row"><div class="tr-info"><div class="tr-t">${esc(t.title)}</div><div class="tr-s">Осталось ${dl} дн.</div></div><button class="restore" onclick="restoreTask('${t.id}')">↩ Восстановить</button></div>`;}).join('');
+}
+function restoreTask(id){const t=S.tasks.find(t=>t.id===id);if(t){t.deleted=false;t.deletedAt=null;}sv();rTrash();toast('Задача восстановлена');}
+function emptyTrash(){S.tasks=S.tasks.filter(t=>!t.deleted);sv();rTrash();toast('Корзина очищена');}
+
+/* TASK MODAL */
+function openAddTask(tid){
+  eTId=tid||null;tPri='low';tRec='none';tFiles=[];tSubs=[];
+  const t=tid?S.tasks.find(t=>t.id===tid):null;
+  document.getElementById('mttl').textContent=t?'Редактировать':'Новая задача';
+  document.getElementById('tn').value=t?t.title:'';
+  document.getElementById('tdesc').value=t?t.description||'':'';
+  document.getElementById('tdl').value=t?t.deadline||td():td();
+  document.getElementById('ttm').value=t?t.deadlineTime||'':'';
+  document.getElementById('trem').value=t?t.reminder||'':'';
+  const sel=document.getElementById('tproj');
+  sel.innerHTML='<option value="">Без проекта</option>'+S.projects.map(p=>`<option value="${p.id}">${p.icon} ${esc(p.name)}</option>`).join('');
+  if(t&&t.projectId)sel.value=t.projectId;
+  if(t){tPri=t.priority||'low';tRec=t.recurring||'none';tFiles=t.files?[...t.files]:[];tSubs=S.tasks.filter(s=>s.parentId===tid&&!s.deleted).map(s=>({id:s.id,title:s.title,completed:s.completed}));}
+  document.querySelectorAll('.pb').forEach(b=>b.classList.toggle('on',b.dataset.v===tPri));
+  document.querySelectorAll('.rb[data-r]').forEach(b=>b.classList.toggle('on',b.dataset.r===tRec));
+  rSL();rFC();
+  document.getElementById('tdel').style.display=t?'':'none';
+  oM('mt');
+}
+function rSL(){document.getElementById('sl').innerHTML=tSubs.map((s,i)=>`<div class="si"><div class="sc ${s.completed?'on':''}" onclick="togS(${i})"></div><input class="sinp" value="${esc(s.title)}" placeholder="Подзадача..." oninput="tSubs[${i}].title=this.value" style="${s.completed?'text-decoration:line-through;color:var(--t3)':''}"><button class="srm" onclick="rmS(${i})">×</button></div>`).join('');}
+function togS(i){tSubs[i].completed=!tSubs[i].completed;rSL();}
+function rmS(i){tSubs.splice(i,1);rSL();}
+function addSub(){tSubs.push({id:uid(),title:'',completed:false});rSL();const ins=document.querySelectorAll('.sinp');if(ins.length)ins[ins.length-1].focus();}
+function rFC(){document.getElementById('fch').innerHTML=tFiles.map((f,i)=>`<div class="fch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>${esc(f.name)}<button class="fcrm" onclick="rmF(${i})">×</button></div>`).join('');}
+function rmF(i){tFiles.splice(i,1);rFC();}
+function handleF(input){Array.from(input.files).forEach(f=>{if(f.size>2*1024*1024){toast('Файл слишком большой (макс 2MB)');return;}const r=new FileReader();r.onload=()=>{tFiles.push({name:f.name,data:r.result,type:f.type});rFC();};r.readAsDataURL(f);});input.value='';}
+function setPri(v,el){tPri=v;document.querySelectorAll('.pb').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
+function setRec(v,el){tRec=v;document.querySelectorAll('.rb[data-r]').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
+function saveTask(){
+  const name=document.getElementById('tn').value.trim();if(!name){toast('Введите название');document.getElementById('tn').focus();return;}
+  const deadline=document.getElementById('tdl').value,deadlineTime=document.getElementById('ttm').value;
+  const reminder=document.getElementById('trem').value,description=document.getElementById('tdesc').value.trim();
+  const projectId=document.getElementById('tproj').value;
+  if(eTId){const t=S.tasks.find(t=>t.id===eTId);if(t)Object.assign(t,{title:name,description,deadline,deadlineTime,reminder,projectId,priority:tPri,recurring:tRec,files:tFiles,updatedAt:new Date().toISOString()});S.tasks=S.tasks.filter(s=>s.parentId!==eTId);tSubs.filter(s=>s.title.trim()).forEach(s=>S.tasks.push({id:s.id||uid(),title:s.title,completed:s.completed,parentId:eTId,deleted:false,createdAt:new Date().toISOString()}));}
+  else{const nt={id:uid(),title:name,description,deadline,deadlineTime,reminder,projectId,priority:tPri,recurring:tRec,files:tFiles,completed:false,deleted:false,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};S.tasks.push(nt);tSubs.filter(s=>s.title.trim()).forEach(s=>S.tasks.push({id:uid(),title:s.title,completed:s.completed,parentId:nt.id,deleted:false,createdAt:new Date().toISOString()}));if(reminder)schedR(nt);}
+  sv();cM('mt');rv(curV);toast(eTId?'Задача обновлена ✏️':'Задача создана! ✅');
+}
+function delTask(){if(!eTId)return;const t=S.tasks.find(t=>t.id===eTId);if(t){t.deleted=true;t.deletedAt=new Date().toISOString();}sv();cM('mt');rv(curV);toast('В корзину 🗑️');}
+
+/* PROJECT MODAL */
+function openAddProject(pid){
+  ePId=pid||null;const p=pid?S.projects.find(p=>p.id===pid):null;
+  document.getElementById('mpttl').textContent=p?'Редактировать проект':'Новый проект';
+  document.getElementById('pn').value=p?p.name:'';
+  tPC=p?p.color||'#EDE9FF':'#EDE9FF';tPE=p?p.icon||'📁':'📁';
+  document.getElementById('peg').innerHTML=PE.map(e=>`<div class="eo ${e===tPE?'on':''}" onclick="setPE('${e}',this)">${e}</div>`).join('');
+  document.querySelectorAll('#pcr .cdot').forEach(d=>d.classList.toggle('on',d.dataset.c===tPC));
+  document.getElementById('pdel').style.display=p?'':'none';oM('mp');
+}
+function setPCol(c,el){tPC=c;document.querySelectorAll('#pcr .cdot').forEach(d=>d.classList.remove('on'));el.classList.add('on');}
+function setPE(e,el){tPE=e;document.querySelectorAll('#peg .eo').forEach(d=>d.classList.remove('on'));el.classList.add('on');}
+function saveProj(){const name=document.getElementById('pn').value.trim();if(!name){toast('Введите название');return;}if(ePId){const p=S.projects.find(p=>p.id===ePId);if(p){p.name=name;p.color=tPC;p.icon=tPE;}}else S.projects.push({id:uid(),name,color:tPC,icon:tPE,createdAt:new Date().toISOString()});sv();cM('mp');rv(curV);toast('Проект сохранён 📁');}
+function delProj(){if(!ePId)return;S.projects=S.projects.filter(p=>p.id!==ePId);S.tasks.forEach(t=>{if(t.projectId===ePId)t.projectId='';});sv();cM('mp');rv(curV);toast('Проект удалён');}
+
+/* HABIT MODAL */
+function openAddHabit(hid){
+  eHId=hid||null;const h=hid?S.habits.find(h=>h.id===hid):null;
+  document.getElementById('mhttl').textContent=h?'Редактировать привычку':'Новая привычка';
+  document.getElementById('hn').value=h?h.name:'';
+  tHC=h?h.color||'#EDE9FF':'#EDE9FF';tHE=h?h.icon||'💧':'💧';tHF=h?h.frequency||'daily':'daily';
+  document.getElementById('heg').innerHTML=HE.map(e=>`<div class="eo ${e===tHE?'on':''}" onclick="setHE('${e}',this)">${e}</div>`).join('');
+  document.querySelectorAll('#hcr .cdot').forEach(d=>d.classList.toggle('on',d.dataset.c===tHC));
+  document.querySelectorAll('.rb[data-hf]').forEach(b=>b.classList.toggle('on',b.dataset.hf===tHF));
+  document.getElementById('hdel').style.display=h?'':'none';oM('mh');
+}
+function setHCol(c,el){tHC=c;document.querySelectorAll('#hcr .cdot').forEach(d=>d.classList.remove('on'));el.classList.add('on');}
+function setHE(e,el){tHE=e;document.querySelectorAll('#heg .eo').forEach(d=>d.classList.remove('on'));el.classList.add('on');}
+function setHF(f,el){tHF=f;document.querySelectorAll('.rb[data-hf]').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
+function saveHabit(){const name=document.getElementById('hn').value.trim();if(!name){toast('Введите название');return;}if(eHId){const h=S.habits.find(h=>h.id===eHId);if(h){h.name=name;h.color=tHC;h.icon=tHE;h.frequency=tHF;}}else S.habits.push({id:uid(),name,color:tHC,icon:tHE,frequency:tHF,completions:[],createdAt:new Date().toISOString()});sv();cM('mh');rv(curV);toast('Привычка сохранена 🌿');}
+function delHabit(){if(!eHId)return;S.habits=S.habits.filter(h=>h.id!==eHId);sv();cM('mh');rv(curV);toast('Привычка удалена');}
+
+/* NOTIFICATIONS */
+async function toggleNotif(){
+  if(!S.settings.notificationsEnabled){if('Notification' in window){const p=await Notification.requestPermission();if(p==='granted'){S.settings.notificationsEnabled=true;sv();rMore();toast('Уведомления включены 🔔');}else toast('Доступ запрещён');}else toast('Браузер не поддерживает уведомления');}
+  else{S.settings.notificationsEnabled=false;sv();rMore();rTs.forEach(t=>clearTimeout(t));rTs=[];toast('Уведомления выключены');}
+}
+function schedR(t){if(!t.reminder||!S.settings.notificationsEnabled)return;const ms=new Date(t.reminder).getTime()-Date.now();if(ms<=0||ms>7*24*60*60*1000)return;rTs.push(setTimeout(()=>new Notification('TaskFlow',{body:t.title}),ms));}
+
+/* EXPORT/IMPORT */
+function exportData(){const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`taskflow_${td()}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);toast('Данные экспортированы 📥');}
+function importData(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(!d.tasks)throw 0;S={...S,...d};sv();rv(curV);toast(`Импортировано ${d.tasks.length} задач 📤`);}catch{toast('Ошибка формата файла');}input.value='';};r.readAsText(f);}
+
+/* MODALS */
+function oM(id){const el=document.getElementById(id);el.style.display='flex';setTimeout(()=>el.classList.add('open'),10);}
+function cM(id){const el=document.getElementById(id);el.classList.remove('open');setTimeout(()=>{el.style.display='none';},320);}
+document.querySelectorAll('.mover').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)cM(o.id);}));
+
+/* CLEANUP */
+function cleanTrash(){const cut=Date.now()-30*24*60*60*1000;S.tasks=S.tasks.filter(t=>!t.deleted||new Date(t.deletedAt).getTime()>cut);sv();}
+
+/* INIT */
+function init(){lv();cleanTrash();rHome();if(S.settings.notificationsEnabled)setTimeout(()=>S.tasks.filter(t=>!t.deleted&&!t.completed&&t.reminder).forEach(schedR),1000);}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
